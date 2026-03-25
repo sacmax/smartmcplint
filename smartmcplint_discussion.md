@@ -540,3 +540,66 @@ Exactly. Bad CLAUDE.md multiplies mistakes — 3 agents all making the same wron
 ---
 
 **All Claude Code features covered. Ready for Step 1: Project Scaffold.**
+
+---
+
+## Step 1: Project Scaffold
+
+### Claude:
+Created the project scaffold with `uv init --lib`:
+
+- `.gitignore` — added `.claude/`, `CLAUDE.md`, `.env`, IDE files
+- `pyproject.toml` — 6 dependencies (click, pydantic, rich, pyyaml, mcp, litellm), CLI entry point, ruff/mypy/pytest config
+- `src/smartmcplint/__init__.py` — version string
+- `src/smartmcplint/cli.py` — Click CLI with `scan` command skeleton
+- `tests/__init__.py` — empty test package
+- Pinned Python to 3.12
+
+**Key decisions:**
+- `[project.scripts]` maps `smartmcplint` command → `smartmcplint.cli:main`
+- `nargs=-1` on `server_args` means "accept any number of positional arguments" — collects the server command
+- `--` separator tells Click to stop parsing flags, so server flags don't get confused with ours
+
+### User:
+Committed and pushed scaffold to GitHub.
+
+---
+
+## Step 2: Models
+
+### Claude:
+Built 5 model files in `src/smartmcplint/models/`:
+
+| File | Models | Purpose |
+|------|--------|---------|
+| `enums.py` | `FindingSeverity`, `EngineType`, `Grade` | Shared constants |
+| `findings.py` | `Finding`, `FixSuggestion` | Universal output type from every engine |
+| `mcp.py` | `ToolInfo`, `ResourceInfo`, `ServerInfo`, `ServerCapabilities` | MCP server data |
+| `results.py` | `EngineResult`, `ScanResult` | Containers for engine and scan results |
+| `config.py` | `ScanConfig`, `EngineWeights` | User configuration and scoring weights |
+
+Data flow: `ScanConfig → Orchestrator → engines produce Finding[] → wrapped in EngineResult → assembled into ScanResult → FixSuggestion[] attached`
+
+**Key design discussion:**
+
+Pydantic is used in two different ways:
+1. **Strict** for internal models (Finding, EngineResult) — our data, our bugs, we want to know
+2. **Lenient parsing + detection** for MCP server responses — their bugs are our findings, not our crashes. A linter that crashes on the code it's supposed to lint is useless.
+
+**Questions and answers:**
+
+**Q1:** Why does a Finding need `engine: EngineType`?
+
+**User:** Findings need to know which engine produced them because the scorer will score engine-specific output with assigned weights and the reporter will report it accordingly.
+
+**Claude:** Correct. The scorer needs `engine` to apply weights (Security 30%, Conformance 25%, etc.). The reporter needs it to group findings by section.
+
+**Q2:** When would an engine be skipped? Two scenarios?
+
+**User:** An engine can be skipped when LLM usage cost needs to be avoided altogether, so Quality and Auto-Fix engines can be skipped. Also those same can be skipped if user doesn't want data sent to an LLM.
+
+**Claude:** Correct. Plus one more scenario: an engine can be skipped if the server doesn't support what the engine needs. E.g., if a server has `capabilities.tools = false`, the Quality Engine has nothing to evaluate. That's why we have `skip_reason` alongside `skipped` — different reasons for the same outcome.
+
+---
+
+**Ready for Step 3: Config.**
