@@ -602,4 +602,44 @@ Pydantic is used in two different ways:
 
 ---
 
+### Design Thought Process: How the 5 Model Files Were Decided
+
+### User:
+Can you explain how you came up with these 5 python files, what was your thought process?
+
+### Claude:
+The thought process was not "what files should I create?" It was **"what are the distinct categories of data in this system?"**
+
+Started by asking: what data flows through SmartMCPLint, and who owns it?
+
+```
+User provides config → we connect to a server → we learn about the server →
+engines produce findings → findings get scored → everything gets packaged into a report
+```
+
+That sentence reveals 4 natural boundaries:
+
+1. **Config** — data from the user (what to scan, how to score). User owns it.
+2. **MCP** — data from the server (tools, resources, capabilities). Server owns it.
+3. **Findings** — data our engines produce (issues, fixes). Engines own it.
+4. **Results** — data that wraps everything (scores, grades). Orchestrator owns it.
+
+5th file (enums) fell out naturally — values referenced by all of the above. If enums lived in any one file, others would have circular imports.
+
+**The rule: group models by who produces or owns the data, not by who consumes it.**
+
+Why not one big `models.py`? Works today, but adding a new MCP model only touches `mcp.py`, adding a new finding type only touches `findings.py`.
+
+Why not one file per model? Too granular. `ToolInfo`, `ResourceInfo`, `ServerInfo` all describe the server — splitting into 3 files creates navigation overhead for no benefit.
+
+**Sweet spot: group by ownership boundary, split when a file would serve two unrelated purposes.**
+
+### User:
+Going forward with every single line of code, it should have a thought process rundown like above.
+
+### Claude:
+Noted. Saved to memory. Every piece of code from here on gets the full "why and how I decided" breakdown.
+
+---
+
 **Ready for Step 3: Config.**

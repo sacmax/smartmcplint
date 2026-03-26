@@ -1,0 +1,29 @@
+# SmartMCPLint Configuration
+# Copy this file to smartmcplint.yaml and customize for your project.
+# All fields are optional — defaults are used for anything not specified.
+
+# Minimum passing score (0-100). Scan exits with code 1 if below this.
+# Useful for CI/CD gating.
+min_score: 70
+
+# Skip LLM-powered engines (Quality, Auto-Fix) for faster/cheaper scans.
+skip_llm: false
+
+# LLM model to use for Quality and Auto-Fix engines.
+# Any model supported by LiteLLM: gpt-4o-mini, claude-sonnet-4-20250514, etc.
+llm_model: gpt-4o-mini
+
+# Output format: terminal (human-readable), json (CI/CD), markdown (PR comments).
+output_format: terminal
+
+# Per-request timeout in seconds for MCP server communication.
+timeout: 30
+
+# Scoring weights — must sum to 1.0 (excluding autofix_bonus).
+# Increase security weight for production servers, increase quality for developer tools.
+weights:
+  conformance: 0.25
+  security: 0.30
+  quality: 0.25
+  behavior: 0.15
+  autofix_bonus: 0.05
