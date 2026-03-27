@@ -13,7 +13,8 @@ dependencies = [
     "rich>=13.0",
     "pyyaml>=6.0",
     "mcp>=1.0",
-    "litellm>=1.40",
+    "litellm==1.82.6",
+    "httpx>=0.27",
 ]
 
 [project.scripts]
