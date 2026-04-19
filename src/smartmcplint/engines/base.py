@@ -12,7 +12,7 @@ import time
 from abc import ABC, abstractmethod
 
 from smartmcplint.client import MCPClient
-from smartmcplint.models.enums import EngineType
+from smartmcplint.models.enums import EngineType, FindingSeverity
 from smartmcplint.models.findings import Finding
 from smartmcplint.models.results import EngineResult
 
@@ -55,7 +55,7 @@ class BaseEngine(ABC):
                 Finding(
                     rule_id=f"{self.engine_type.value.upper()}-ERR",
                     engine=self.engine_type,
-                    severity="critical",
+                    severity=FindingSeverity.CRITICAL,
                     title=f"{self.engine_type.value.title()} engine encountered an internal error",
                     message=f"Engine crashed during execution: {e}",
                 )

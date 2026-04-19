@@ -9,7 +9,6 @@
 """
 
 import logging
-from typing import Any
 
 from smartmcplint.client import MCPClient, MCPError
 from smartmcplint.engines.base import BaseEngine
@@ -60,7 +59,7 @@ class ConformanceEngine(BaseEngine):
                 severity=FindingSeverity.CRITICAL,
                 title="Server did not complete initialization",
                 message="The initialize handshake did not produce a valid server_info. "
-                        "This means the server either didn't respond or returned an unparseable response.",
+                        "The server either didn't respond or returned an unparseable response.",
                 spec_ref="MCP Spec §5.1 — Initialization",
             ))
             return findings
@@ -98,7 +97,8 @@ class ConformanceEngine(BaseEngine):
                 spec_ref="MCP Spec §5.1 — Initialization",
             ))
 
-        if not info.capabilities.tools and not info.capabilities.resources and not info.capabilities.prompts:
+        caps = info.capabilities
+        if not caps.tools and not caps.resources and not caps.prompts:
             findings.append(Finding(
                 rule_id="CONF-005",
                 engine=EngineType.CONFORMANCE,
@@ -180,8 +180,10 @@ class ConformanceEngine(BaseEngine):
                         engine=EngineType.CONFORMANCE,
                         severity=FindingSeverity.WARNING,
                         title=f"Tool '{tool.name}' inputSchema type is not 'object'",
-                        message=f"inputSchema.type is '{schema.get('type')}' but should be 'object'. "
-                                "MCP tool parameters are passed as a JSON object.",
+                        message=(
+                            f"inputSchema.type is '{schema.get('type')}' but should be 'object'. "
+                            "MCP tool parameters are passed as a JSON object."
+                        ),
                         spec_ref="MCP Spec §6.1 — Tool Definition",
                         tool_name=tool.name,
                     ))
@@ -284,8 +286,10 @@ class ConformanceEngine(BaseEngine):
                 engine=EngineType.CONFORMANCE,
                 severity=FindingSeverity.WARNING,
                 title="Server did not respond to unknown method",
-                message="Server produced no response for an unknown method request. "
-                        "JSON-RPC requires a response (with an error) for every request with an id.",
+                message=(
+                    "Server produced no response for an unknown method request. "
+                    "JSON-RPC requires a response (with an error) for every request with an id."
+                ),
                 spec_ref="JSON-RPC 2.0 §4 — Request",
             ))
 

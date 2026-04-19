@@ -60,7 +60,7 @@ async def call_llm_judge(
             return None
 
         tool_call = message.tool_calls[0]
-        arguments = json.loads(tool_call.function.arguments)
+        arguments: dict[str, Any] = json.loads(tool_call.function.arguments)
 
         logger.debug(
             f"LLM judge responded via {tool_name}: "

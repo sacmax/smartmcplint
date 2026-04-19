@@ -83,7 +83,9 @@ class StdioTransport(BaseTransport):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            logger.debug(f"Started MCP server process: {' '.join(self._command)} (pid={self._process.pid})")
+            logger.debug(
+                f"Started MCP server process: {' '.join(self._command)} (pid={self._process.pid})"
+            )
         except FileNotFoundError as e:
             raise TransportError(f"Server command not found: {self._command[0]}") from e
         except OSError as e:
@@ -99,7 +101,7 @@ class StdioTransport(BaseTransport):
             self._process.terminate()
             try:
                 await asyncio.wait_for(self._process.wait(), timeout=5)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self._process.kill()
                 await self._process.wait()
             logger.debug(f"Stopped MCP server process (pid={self._process.pid})")
@@ -128,7 +130,7 @@ class StdioTransport(BaseTransport):
                 self._process.stdout.readline(),
                 timeout=self._timeout,
             )
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             raise TransportError(
                 f"Server did not respond within {self._timeout}s"
             ) from e
@@ -139,7 +141,8 @@ class StdioTransport(BaseTransport):
             raise TransportError(f"Server process exited unexpectedly. Stderr: {stderr}")
 
         try:
-            return json.loads(line)
+            result: dict[str, Any] = json.loads(line)
+            return result
         except json.JSONDecodeError as e:
             raise TransportError(f"Server sent invalid JSON: {line.decode().strip()!r}") from e
 
@@ -150,7 +153,7 @@ class StdioTransport(BaseTransport):
         try:
             stderr = await asyncio.wait_for(self._process.stderr.read(), timeout=2)
             return stderr.decode().strip() or "(empty stderr)"
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return "(stderr read timed out)"
 
 
@@ -199,9 +202,13 @@ class HttpTransport(BaseTransport):
         except httpx.ConnectError as e:
             raise TransportError(f"Connection lost to {self._url}: {e}") from e
         except httpx.TimeoutException as e:
-            raise TransportError(f"Server at {self._url} did not respond within {self._timeout}s") from e
+            raise TransportError(
+                f"Server at {self._url} did not respond within {self._timeout}s"
+            ) from e
         except httpx.HTTPStatusError as e:
-            raise TransportError(f"Server returned HTTP {e.response.status_code}: {e.response.text}") from e
+            raise TransportError(
+                f"Server returned HTTP {e.response.status_code}: {e.response.text}"
+            ) from e
 
     async def receive(self) -> dict[str, Any]:
         """Return the response from the last send().

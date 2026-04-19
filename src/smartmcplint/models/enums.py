@@ -1,9 +1,9 @@
 """Enumerations used across SmartMCPLint."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class FindingSeverity(str, Enum):
+class FindingSeverity(StrEnum):
     """How serious a finding is."""
 
     CRITICAL = "critical"
@@ -11,7 +11,7 @@ class FindingSeverity(str, Enum):
     INFO = "info"
 
 
-class EngineType(str, Enum):
+class EngineType(StrEnum):
     """The five scanning engines."""
 
     CONFORMANCE = "conformance"
@@ -21,7 +21,7 @@ class EngineType(str, Enum):
     AUTOFIX = "autofix"
 
 
-class Grade(str, Enum):
+class Grade(StrEnum):
     """Letter grades for scan results."""
 
     A_PLUS = "A+"
