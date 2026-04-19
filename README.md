@@ -21,7 +21,7 @@ MCP is becoming the standard for connecting AI agents to external tools. But the
 - **`--skip-llm` flag** — run all rule-based checks instantly, no API key required
 - **Configurable scoring weights** — tune what matters most for your use case
 - **CI/CD integration** — exit code 1 when score falls below `--min-score`
-- **Multiple output formats** — rich terminal display, JSON, and Markdown for PR comments
+- **Multiple output formats** — rich terminal display and JSON for programmatic use
 
 ---
 
@@ -182,6 +182,7 @@ src/smartmcplint/
 ├── client.py              # MCP protocol client
 ├── transport.py           # stdio and HTTP transports
 ├── config.py              # Config resolution (CLI > YAML > defaults)
+├── scanner.py             # Scan orchestrator — wires all engines together
 ├── engines/
 │   ├── conformance.py     # Protocol compliance checks
 │   ├── security.py        # Security vulnerability probes
