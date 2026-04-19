@@ -8,6 +8,7 @@
   how servers handle intentionally malformed messages.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -44,9 +45,13 @@ class MCPClient:
 
     def __init__(self, transport: BaseTransport) -> None:
         self._transport = transport
-        # Auto-incrementing request ID. Each JSON-RPC request needs a unique ID
-        # to match responses. Simple counter — no need for UUIDs.
         self._request_id = 0
+        # Serializes concurrent engine requests through the single stdio pipe.
+        # asyncio.gather runs all engines as concurrent tasks — without this lock,
+        # two engines calling call_tool simultaneously would both await readline()
+        # on the same stream, raising "readuntil() called while another coroutine
+        # is already waiting for incoming data".
+        self._lock = asyncio.Lock()
         # Populated after initialize() — engines read these directly.
         self.server_info: ServerInfo | None = None
         self.tools: list[ToolInfo] = []
@@ -64,17 +69,18 @@ class MCPClient:
         - Sends via transport, reads response, checks for errors.
         - Returns just the "result" field — callers don't deal with JSON-RPC framing.
         """
-        request = {
-            "jsonrpc": "2.0",
-            "id": self._next_id(),
-            "method": method,
-        }
-        if params is not None:
-            request["params"] = params
+        async with self._lock:
+            request = {
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": method,
+            }
+            if params is not None:
+                request["params"] = params
 
-        logger.debug(f"Sending MCP request: method={method}, id={request['id']}")
-        await self._transport.send(request)
-        response = await self._transport.receive()
+            logger.debug(f"Sending MCP request: method={method}, id={request['id']}")
+            await self._transport.send(request)
+            response = await self._transport.receive()
 
         # JSON-RPC error response — server understood us but rejected the request
         if "error" in response:
@@ -210,9 +216,10 @@ class MCPClient:
         conformance testing requires sending intentionally invalid messages
         (missing fields, wrong types, unknown methods) to see how the server reacts.
         """
-        await self._transport.send(message)
-        try:
-            return await self._transport.receive()
-        except TransportError:
-            # Server might not respond to invalid messages — that's a valid test outcome
-            return {}
+        async with self._lock:
+            await self._transport.send(message)
+            try:
+                return await self._transport.receive()
+            except TransportError:
+                # Server might not respond to invalid messages — that's a valid test outcome
+                return {}
