@@ -53,8 +53,8 @@ Invokes tools with controlled inputs and tests their runtime behavior:
 
 > **Safety:** The Behavior Engine never invokes write operations (`create`, `update`, `delete`, etc.). Only read-like tools are tested.
 
-### Auto-Fix Engine *(coming soon)*
-Generates concrete, LLM-powered fix suggestions for each finding — including improved descriptions, corrected schemas, and recommended validation logic.
+### Auto-Fix Engine (`FIX-*`)
+Generates concrete, LLM-powered fix suggestions for each finding — including improved descriptions, corrected schemas, and recommended validation logic. Runs after all other engines as a second pass, grouping findings by rule to minimize LLM calls. Skipped automatically when `--skip-llm` is set.
 
 ---
 
@@ -125,7 +125,7 @@ cp smartmcplint.example.yaml smartmcplint.yaml
 min_score: 70
 skip_llm: false
 llm_model: gpt-4o-mini        # any LiteLLM-supported model
-output_format: terminal        # terminal | json | markdown
+output_format: terminal        # terminal | json
 timeout: 30
 
 weights:
@@ -160,7 +160,7 @@ API keys are read from environment variables only — never from config files.
 | Security | `SEC-` | Authentication, input validation, data exposure, transport |
 | Quality | `QUAL-` | Schema completeness, description clarity, disambiguation, param docs |
 | Behavior | `BEH-` | Valid call, bad input resilience, response consistency, latency |
-| Auto-Fix | `FIX-` | LLM-generated remediation suggestions *(coming soon)* |
+| Auto-Fix | — | LLM-generated fix suggestions (grouped by rule, one per unique finding type) |
 
 ---
 
@@ -172,6 +172,7 @@ uv run ruff format src/    # Format
 uv run mypy src/           # Type check
 uv run pytest              # All tests
 uv run pytest tests/unit   # Unit tests only
+uv run pytest tests/integration -m integration  # Integration tests (requires no API key)
 ```
 
 ### Project Structure
@@ -187,9 +188,16 @@ src/smartmcplint/
 │   ├── conformance.py     # Protocol compliance checks
 │   ├── security.py        # Security vulnerability probes
 │   ├── quality.py         # LLM-as-judge tool quality evaluation
-│   └── behavior.py        # Runtime invocation testing
+│   ├── behavior.py        # Runtime invocation testing
+│   └── autofix.py         # LLM-powered fix suggestions (Phase 2)
 ├── models/                # Pydantic data models
 └── utils/llm.py           # Centralized LLM calls via LiteLLM
+
+tests/
+├── unit/engines/          # Per-engine unit tests (153 tests)
+├── unit/test_scanner.py   # Scoring and grade threshold tests
+├── integration/           # End-to-end tests against fixture servers
+└── fixtures/              # good_server.py, bad_server.py
 ```
 
 ---
