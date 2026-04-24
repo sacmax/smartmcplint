@@ -13,6 +13,7 @@ import logging
 import time
 
 from smartmcplint.client import MCPClient
+from smartmcplint.engines.autofix import AutoFixEngine
 from smartmcplint.engines.base import BaseEngine
 from smartmcplint.engines.behavior import BehaviorEngine
 from smartmcplint.engines.conformance import ConformanceEngine
@@ -20,6 +21,7 @@ from smartmcplint.engines.quality import QualityEngine
 from smartmcplint.engines.security import SecurityEngine
 from smartmcplint.models.config import ScanConfig
 from smartmcplint.models.enums import EngineType, Grade
+from smartmcplint.models.findings import FixSuggestion
 from smartmcplint.models.results import EngineResult, ScanResult
 from smartmcplint.transport import create_transport
 
@@ -163,12 +165,26 @@ class Scanner:
                 else:
                     engine_results[engine_type] = raw
 
+            # Phase 2: Auto-Fix (sequential — consumes Phase 1 findings)
+            all_findings = [
+                f
+                for er in engine_results.values()
+                for f in er.findings
+            ]
+            fix_suggestions: list[FixSuggestion] = await AutoFixEngine(
+                self._config
+            ).generate(all_findings)
+
+            if fix_suggestions:
+                logger.info(f"Auto-Fix generated {len(fix_suggestions)} suggestion(s)")
+
             scan_duration_ms = (time.perf_counter() - scan_start) * 1000
             overall_score = self._compute_score(engine_results)
 
             return ScanResult(
                 server_info=client.server_info,
                 engine_results=engine_results,
+                fix_suggestions=fix_suggestions,
                 overall_score=overall_score,
                 grade=self._score_to_grade(overall_score),
                 scan_duration_ms=scan_duration_ms,
