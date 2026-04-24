@@ -21,6 +21,7 @@ from smartmcplint.scanner import Scanner
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 GOOD_SERVER = [sys.executable, str(FIXTURES / "good_server.py")]
+BAD_SERVER  = [sys.executable, str(FIXTURES / "bad_server.py")]
 
 
 # ---------------------------------------------------------------------------
@@ -162,3 +163,99 @@ async def test_skip_engines_removes_engine_from_results() -> None:
     assert sec_result is not None
     assert sec_result.skipped is True
     assert sec_result.score == 100.0
+
+
+# ---------------------------------------------------------------------------
+# bad_server.py — deliberately broken fixture
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_bad_server_produces_conf002() -> None:
+    """Server omits protocolVersion — CONF-002 fires."""
+    config = ScanConfig(transport="stdio", server_cmd=BAD_SERVER, skip_llm=True)
+    result = await Scanner(config).scan()
+    from smartmcplint.models.enums import EngineType
+    conf = result.engine_results.get(EngineType.CONFORMANCE)
+    assert conf is not None
+    rule_ids = [f.rule_id for f in conf.findings]
+    assert "CONF-002" in rule_ids
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_bad_server_produces_conf003() -> None:
+    """Server omits serverInfo.name — CONF-003 fires."""
+    config = ScanConfig(transport="stdio", server_cmd=BAD_SERVER, skip_llm=True)
+    result = await Scanner(config).scan()
+    from smartmcplint.models.enums import EngineType
+    conf = result.engine_results.get(EngineType.CONFORMANCE)
+    assert conf is not None
+    rule_ids = [f.rule_id for f in conf.findings]
+    assert "CONF-003" in rule_ids
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_bad_server_produces_conf013() -> None:
+    """Tool has no description — CONF-013 fires."""
+    config = ScanConfig(transport="stdio", server_cmd=BAD_SERVER, skip_llm=True)
+    result = await Scanner(config).scan()
+    from smartmcplint.models.enums import EngineType
+    conf = result.engine_results.get(EngineType.CONFORMANCE)
+    assert conf is not None
+    rule_ids = [f.rule_id for f in conf.findings]
+    assert "CONF-013" in rule_ids
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_bad_server_produces_conf014() -> None:
+    """Tool inputSchema type is 'array' not 'object' — CONF-014 fires."""
+    config = ScanConfig(transport="stdio", server_cmd=BAD_SERVER, skip_llm=True)
+    result = await Scanner(config).scan()
+    from smartmcplint.models.enums import EngineType
+    conf = result.engine_results.get(EngineType.CONFORMANCE)
+    assert conf is not None
+    rule_ids = [f.rule_id for f in conf.findings]
+    assert "CONF-014" in rule_ids
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_bad_server_produces_conf020() -> None:
+    """Non-existent tool returns success — CONF-020 fires."""
+    config = ScanConfig(transport="stdio", server_cmd=BAD_SERVER, skip_llm=True)
+    result = await Scanner(config).scan()
+    from smartmcplint.models.enums import EngineType
+    conf = result.engine_results.get(EngineType.CONFORMANCE)
+    assert conf is not None
+    rule_ids = [f.rule_id for f in conf.findings]
+    assert "CONF-020" in rule_ids
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_bad_server_produces_conf030() -> None:
+    """Unknown method returns wrong error code — CONF-030 fires."""
+    config = ScanConfig(transport="stdio", server_cmd=BAD_SERVER, skip_llm=True)
+    result = await Scanner(config).scan()
+    from smartmcplint.models.enums import EngineType
+    conf = result.engine_results.get(EngineType.CONFORMANCE)
+    assert conf is not None
+    rule_ids = [f.rule_id for f in conf.findings]
+    assert "CONF-030" in rule_ids
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_bad_server_scores_lower_than_good_server() -> None:
+    """A broken server scores lower than a well-behaved one."""
+    good_config = ScanConfig(transport="stdio", server_cmd=GOOD_SERVER, skip_llm=True)
+    bad_config  = ScanConfig(transport="stdio", server_cmd=BAD_SERVER,  skip_llm=True)
+    good_result = await Scanner(good_config).scan()
+    bad_result  = await Scanner(bad_config).scan()
+    assert bad_result.overall_score < good_result.overall_score, (
+        f"Bad server ({bad_result.overall_score:.1f}) should score lower "
+        f"than good server ({good_result.overall_score:.1f})"
+    )
